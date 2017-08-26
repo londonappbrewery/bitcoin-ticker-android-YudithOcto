@@ -12,9 +12,16 @@ import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.Toast;
 
 
+import com.londonappbrewery.bitcointicker.RestClient.Interface.ApiService;
+import com.londonappbrewery.bitcointicker.RestClient.Model.BitcoinModel;
+import com.londonappbrewery.bitcointicker.RestClient.RetrofitClient;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -25,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Member Variables:
     TextView mPriceTextView;
+    ApiService apiService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
         Spinner spinner = (Spinner) findViewById(R.id.currency_spinner);
 
         // Create an ArrayAdapter using the String array and a spinner layout
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+        final ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
                 R.array.currency_array, R.layout.spinner_item);
 
         // Specify the layout to use when the list of choices appears
@@ -44,12 +52,43 @@ public class MainActivity extends AppCompatActivity {
         // Apply the adapter to the spinner
         spinner.setAdapter(adapter);
 
+        //Instantiate Service class here for retrofit
+        apiService = RetrofitClient.getClient().create(ApiService.class);
+
         // TODO: Set an OnItemSelected listener on the spinner
+        spinner.setOnItemSelectedListener(new OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int position, long l) {
+                Log.d("Bitcoin ",""+adapterView.getItemAtPosition(position));
+                letsDoSomeNetworking(String.valueOf(adapterView.getItemAtPosition(position)));
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+                Log.d("Bitcoin", "Nothing selected");
+            }
+        });
 
     }
 
     // TODO: complete the letsDoSomeNetworking() method
-    private void letsDoSomeNetworking(String url) {
+    private void letsDoSomeNetworking(String currency) {
+        apiService.getBitcoin(currency).enqueue(new Callback<BitcoinModel>() {
+            @Override
+            public void onResponse(Call<BitcoinModel> call, Response<BitcoinModel> response) {
+                if(response.isSuccessful()) {
+                    Log.d("Bitcoin", "Response " + response.body());
+                    mPriceTextView.setText(String.valueOf(response.body().getChanges().getPrice().getYear()));
+                }else{
+                    Log.d("Bitcoin", "Response " + response.message());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<BitcoinModel> call, Throwable t) {
+                Log.d("Bitcoin", "error");
+            }
+        });
 
 //        AsyncHttpClient client = new AsyncHttpClient();
 //        client.get(WEATHER_URL, params, new JsonHttpResponseHandler() {
